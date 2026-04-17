@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/matlab/matlab-mcp-core-server/internal/adaptors/globalmatlab"
+	"github.com/matlab/matlab-mcp-core-server/internal/adaptors/matlabmanager"
 	"github.com/matlab/matlab-mcp-core-server/internal/entities"
 	"github.com/matlab/matlab-mcp-core-server/internal/messages"
 	"github.com/matlab/matlab-mcp-core-server/internal/testutils"
@@ -24,6 +25,7 @@ func TestGlobalMATLAB_Client_HappyPath(t *testing.T) {
 	defer mockMATLABManagerAdaptor.AssertExpectations(t)
 
 	expectedSessionClient := &entitiesmocks.MockMATLABSessionClient{}
+	defer expectedSessionClient.AssertExpectations(t)
 
 	ctx := t.Context()
 	expectedSessionID := entities.SessionID(123)
@@ -102,6 +104,76 @@ func TestGlobalMATLAB_Client_ReturnsMATLABStartupCachedErrorOnSubsequentClientCa
 	require.ErrorIs(t, err2, expectedError)
 }
 
+func TestGlobalMATLAB_Client_DiscoveryErrorNotCached_RetrySucceeds(t *testing.T) {
+	// Arrange
+	mockLogger := testutils.NewInspectableLogger()
+
+	mockMATLABManagerAdaptor := &mocks.MockMATLABManagerAdaptor{}
+	defer mockMATLABManagerAdaptor.AssertExpectations(t)
+
+	expectedSessionClient := &entitiesmocks.MockMATLABSessionClient{}
+	defer expectedSessionClient.AssertExpectations(t)
+
+	ctx := t.Context()
+	expectedSessionID := entities.SessionID(123)
+
+	mockMATLABManagerAdaptor.EXPECT().
+		StartSession(ctx, mockLogger.AsMockArg()).
+		Return(entities.SessionID(0), matlabmanager.ErrNoMATLABSessionDiscovered).
+		Once()
+
+	mockMATLABManagerAdaptor.EXPECT().
+		StartSession(ctx, mockLogger.AsMockArg()).
+		Return(expectedSessionID, nil).
+		Once()
+
+	mockMATLABManagerAdaptor.EXPECT().
+		GetMATLABSessionClient(ctx, mockLogger.AsMockArg(), expectedSessionID).
+		Return(expectedSessionClient, nil).
+		Once()
+
+	globalMATLAB := globalmatlab.New(mockMATLABManagerAdaptor)
+
+	// Act
+	client1, err1 := globalMATLAB.Client(ctx, mockLogger)
+	client2, err2 := globalMATLAB.Client(ctx, mockLogger)
+
+	// Assert
+	require.Nil(t, client1)
+	require.ErrorIs(t, err1, matlabmanager.ErrNoMATLABSessionDiscovered)
+
+	require.Equal(t, expectedSessionClient, client2)
+	require.NoError(t, err2)
+}
+
+func TestGlobalMATLAB_Client_DiscoveryErrorNotCached_RetryAlsoFails(t *testing.T) {
+	// Arrange
+	mockLogger := testutils.NewInspectableLogger()
+
+	mockMATLABManagerAdaptor := &mocks.MockMATLABManagerAdaptor{}
+	defer mockMATLABManagerAdaptor.AssertExpectations(t)
+
+	ctx := t.Context()
+
+	mockMATLABManagerAdaptor.EXPECT().
+		StartSession(ctx, mockLogger.AsMockArg()).
+		Return(entities.SessionID(0), matlabmanager.ErrNoMATLABSessionDiscovered).
+		Twice()
+
+	globalMATLAB := globalmatlab.New(mockMATLABManagerAdaptor)
+
+	// Act
+	client1, err1 := globalMATLAB.Client(ctx, mockLogger)
+	client2, err2 := globalMATLAB.Client(ctx, mockLogger)
+
+	// Assert
+	require.Nil(t, client1)
+	require.ErrorIs(t, err1, matlabmanager.ErrNoMATLABSessionDiscovered)
+
+	require.Nil(t, client2)
+	require.ErrorIs(t, err2, matlabmanager.ErrNoMATLABSessionDiscovered)
+}
+
 func TestGlobalMATLAB_Client_GetMATLABSessionClientError_RetrySucceeds(t *testing.T) {
 	// Arrange
 	mockLogger := testutils.NewInspectableLogger()
@@ -110,6 +182,7 @@ func TestGlobalMATLAB_Client_GetMATLABSessionClientError_RetrySucceeds(t *testin
 	defer mockMATLABManagerAdaptor.AssertExpectations(t)
 
 	expectedSessionClient := &entitiesmocks.MockMATLABSessionClient{}
+	defer expectedSessionClient.AssertExpectations(t)
 
 	ctx := t.Context()
 	firstSessionID := entities.SessionID(123)
@@ -164,7 +237,10 @@ func TestGlobalMATLAB_Client_RestartOnGetClientFailure(t *testing.T) {
 	defer mockMATLABManagerAdaptor.AssertExpectations(t)
 
 	firstSessionClient := &entitiesmocks.MockMATLABSessionClient{}
+	defer firstSessionClient.AssertExpectations(t)
+
 	secondSessionClient := &entitiesmocks.MockMATLABSessionClient{}
+	defer secondSessionClient.AssertExpectations(t)
 
 	ctx := t.Context()
 	firstSessionID := entities.SessionID(123)
@@ -227,6 +303,7 @@ func TestGlobalMATLAB_Client_DoesNotErrorIfStopSessionError(t *testing.T) {
 	defer mockMATLABManagerAdaptor.AssertExpectations(t)
 
 	expectedSessionClient := &entitiesmocks.MockMATLABSessionClient{}
+	defer expectedSessionClient.AssertExpectations(t)
 
 	ctx := t.Context()
 	firstSessionID := entities.SessionID(123)
@@ -321,6 +398,72 @@ func TestGlobalMATLAB_Client_RestartFailure_OnExistingSession(t *testing.T) {
 	require.Nil(t, client)
 }
 
+func TestGlobalMATLAB_Client_RestartDiscoveryErrorNotCached_RetrySucceeds(t *testing.T) {
+	// Arrange
+	mockLogger := testutils.NewInspectableLogger()
+
+	mockMATLABManagerAdaptor := &mocks.MockMATLABManagerAdaptor{}
+	defer mockMATLABManagerAdaptor.AssertExpectations(t)
+
+	expectedSessionClient := &entitiesmocks.MockMATLABSessionClient{}
+	defer expectedSessionClient.AssertExpectations(t)
+
+	ctx := t.Context()
+	firstSessionID := entities.SessionID(123)
+	secondSessionID := entities.SessionID(456)
+	getClientError := assert.AnError
+
+	// First call: start session succeeds, get client fails, restart returns discovery error
+	mockMATLABManagerAdaptor.EXPECT().
+		StartSession(ctx, mockLogger.AsMockArg()).
+		Return(firstSessionID, nil).
+		Once()
+
+	mockMATLABManagerAdaptor.EXPECT().
+		GetMATLABSessionClient(ctx, mockLogger.AsMockArg(), firstSessionID).
+		Return(nil, getClientError).
+		Once()
+
+	mockMATLABManagerAdaptor.EXPECT().
+		StopMATLABSession(ctx, mockLogger.AsMockArg(), firstSessionID).
+		Return(nil).
+		Once()
+
+	mockMATLABManagerAdaptor.EXPECT().
+		ShouldRestart().
+		Return(true, nil).
+		Once()
+
+	mockMATLABManagerAdaptor.EXPECT().
+		StartSession(ctx, mockLogger.AsMockArg()).
+		Return(entities.SessionID(0), matlabmanager.ErrNoMATLABSessionDiscovered).
+		Once()
+
+	// Second call: discovery succeeds on retry
+	mockMATLABManagerAdaptor.EXPECT().
+		StartSession(ctx, mockLogger.AsMockArg()).
+		Return(secondSessionID, nil).
+		Once()
+
+	mockMATLABManagerAdaptor.EXPECT().
+		GetMATLABSessionClient(ctx, mockLogger.AsMockArg(), secondSessionID).
+		Return(expectedSessionClient, nil).
+		Once()
+
+	globalMATLAB := globalmatlab.New(mockMATLABManagerAdaptor)
+
+	// Act
+	client1, err1 := globalMATLAB.Client(ctx, mockLogger)
+	client2, err2 := globalMATLAB.Client(ctx, mockLogger)
+
+	// Assert
+	require.Nil(t, client1)
+	require.ErrorIs(t, err1, matlabmanager.ErrNoMATLABSessionDiscovered)
+
+	require.Equal(t, expectedSessionClient, client2)
+	require.NoError(t, err2)
+}
+
 func TestGlobalMATLAB_Client_ConcurrentCallsWaitForCompletion(t *testing.T) {
 	// Arrange
 	mockLogger := testutils.NewInspectableLogger()
@@ -329,6 +472,7 @@ func TestGlobalMATLAB_Client_ConcurrentCallsWaitForCompletion(t *testing.T) {
 	defer mockMATLABManagerAdaptor.AssertExpectations(t)
 
 	expectedSessionClient := &entitiesmocks.MockMATLABSessionClient{}
+	defer expectedSessionClient.AssertExpectations(t)
 
 	ctx := t.Context()
 	expectedSessionID := entities.SessionID(123)

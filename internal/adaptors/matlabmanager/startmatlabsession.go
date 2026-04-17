@@ -78,6 +78,12 @@ func (m *MATLABManager) StartMATLABSession(ctx context.Context, sessionLogger en
 			return zeroValue, err
 		}
 
+		// Check if the session is alive
+		response := embeddedConnectorClient.Ping(ctx, sessionLogger)
+		if !response.IsAlive {
+			return zeroValue, ErrNoMATLABSessionDiscovered
+		}
+
 		client = newMATLABSessionClientWithoutCleanup(embeddedConnectorClient)
 	default:
 		return zeroValue, fmt.Errorf("unknown request type: %T", request)

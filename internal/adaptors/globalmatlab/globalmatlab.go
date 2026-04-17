@@ -7,6 +7,7 @@ import (
 	"errors"
 	"sync"
 
+	"github.com/matlab/matlab-mcp-core-server/internal/adaptors/matlabmanager"
 	"github.com/matlab/matlab-mcp-core-server/internal/entities"
 	"github.com/matlab/matlab-mcp-core-server/internal/messages"
 )
@@ -57,9 +58,8 @@ func (g *GlobalMATLAB) getOrCreateClient(ctx context.Context, logger entities.Lo
 
 	// Start MATLAB if we don't have a session
 	if g.sessionID == sessionIDZeroValue {
-		sessionID, err := g.matlabManagerAdaptor.StartSession(ctx, logger)
+		sessionID, err := g.startMATLABSessionAndCacheUnrecoverableErrors(ctx, logger)
 		if err != nil {
-			g.startSessionError = err
 			return nil, err
 		}
 		g.sessionID = sessionID
@@ -75,7 +75,7 @@ func (g *GlobalMATLAB) getOrCreateClient(ctx context.Context, logger entities.Lo
 
 		sessionID, err := g.restartMATLABSession(ctx, logger)
 		if err != nil {
-			g.startSessionError = err
+			g.sessionID = sessionIDZeroValue
 			return nil, err
 		}
 		g.sessionID = sessionID
@@ -85,19 +85,33 @@ func (g *GlobalMATLAB) getOrCreateClient(ctx context.Context, logger entities.Lo
 
 	return client, nil
 }
+
 func (g *GlobalMATLAB) restartMATLABSession(ctx context.Context, logger entities.Logger) (entities.SessionID, error) {
+	var sessionIDZeroValue entities.SessionID
+
 	shouldRestart, messagesErr := g.matlabManagerAdaptor.ShouldRestart()
 	if messagesErr != nil {
-		return 0, messagesErr
+		g.startSessionError = messagesErr
+		return sessionIDZeroValue, messagesErr
 	}
 
 	if !shouldRestart {
-		return 0, ErrLostMATLABConnection
+		g.startSessionError = ErrLostMATLABConnection
+		return sessionIDZeroValue, ErrLostMATLABConnection
 	}
+
+	return g.startMATLABSessionAndCacheUnrecoverableErrors(ctx, logger)
+}
+
+func (g *GlobalMATLAB) startMATLABSessionAndCacheUnrecoverableErrors(ctx context.Context, logger entities.Logger) (entities.SessionID, error) {
+	var sessionIDZeroValue entities.SessionID
 
 	sessionID, err := g.matlabManagerAdaptor.StartSession(ctx, logger)
 	if err != nil {
-		return 0, err
+		if !errors.Is(err, matlabmanager.ErrNoMATLABSessionDiscovered) {
+			g.startSessionError = err
+		}
+		return sessionIDZeroValue, err
 	}
 
 	return sessionID, nil
