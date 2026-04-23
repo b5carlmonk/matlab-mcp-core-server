@@ -226,7 +226,7 @@ else
 	MATLAB_MCP_CORE_SERVER_MLTBX_DIR="$(MLTBX_DIR)" matlab -batch "cd(fullfile('$(CURDIR)', 'matlab', 'matlab_mcp_toolbox')); buildtool clean package;"
 endif
 
-update-embedded-matlab-addon: build-tools
+update-embedded-matlab-addon: build-tools sync-matlab-mcp
 ifeq ($(OS),Windows_NT)
 	$$env:MATLAB_MCP_CORE_SERVER_MLTBX_DIR='$(EMBEDDED_MLTBX_DIR)'; matlab -batch "cd(fullfile('$(CURDIR)', 'matlab', 'matlab_mcp_toolbox')); buildtool clean package;"
 	& "$(SOURCEHASH_BIN)" write "$(SOURCES_HASH_FILE)" "$(MATLAB_TOOLBOX_DIR)"
