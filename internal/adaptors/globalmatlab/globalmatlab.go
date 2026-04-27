@@ -7,7 +7,7 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/matlab/matlab-mcp-core-server/internal/adaptors/matlabmanager"
+	"github.com/matlab/matlab-mcp-core-server/internal/adaptors/globalmatlab/sessionmanager"
 	"github.com/matlab/matlab-mcp-core-server/internal/entities"
 	"github.com/matlab/matlab-mcp-core-server/internal/messages"
 )
@@ -108,7 +108,7 @@ func (g *GlobalMATLAB) startMATLABSessionAndCacheUnrecoverableErrors(ctx context
 
 	sessionID, err := g.matlabManagerAdaptor.StartSession(ctx, logger)
 	if err != nil {
-		if !errors.Is(err, matlabmanager.ErrNoMATLABSessionDiscovered) {
+		if !errors.Is(err, sessionmanager.ErrFailedToAttachToMATLABSession) {
 			g.startSessionError = err
 		}
 		return sessionIDZeroValue, err

@@ -39,8 +39,9 @@ import (
 	"github.com/matlab/matlab-mcp-core-server/internal/adaptors/matlabmanager/matlabservices/services/matlablocator/matlabversion"
 	"github.com/matlab/matlab-mcp-core-server/internal/adaptors/matlabmanager/matlabsessionclient"
 	"github.com/matlab/matlab-mcp-core-server/internal/adaptors/matlabmanager/matlabsessionstore"
-	"github.com/matlab/matlab-mcp-core-server/internal/adaptors/matlabmanager/sessiondiscovery"
-	"github.com/matlab/matlab-mcp-core-server/internal/adaptors/matlabmanager/sessiondiscovery/appdatadir"
+	"github.com/matlab/matlab-mcp-core-server/internal/adaptors/matlabmanager/sessionselector"
+	"github.com/matlab/matlab-mcp-core-server/internal/adaptors/matlabmanager/sessionselector/sessiondiscovery"
+	"github.com/matlab/matlab-mcp-core-server/internal/adaptors/matlabmanager/sessionselector/sessiondiscovery/appdatadir"
 	"github.com/matlab/matlab-mcp-core-server/internal/adaptors/mcp/resources/baseresource"
 	"github.com/matlab/matlab-mcp-core-server/internal/adaptors/mcp/resources/codingguidelines"
 	"github.com/matlab/matlab-mcp-core-server/internal/adaptors/mcp/resources/plaintextlivecodegeneration"
@@ -370,7 +371,12 @@ func Initialize(serverDefinition ApplicationDefinition) *Application {
 		wire.Bind(new(matlabmanager.MATLABServices), new(*matlabservices.MATLABServices)),
 		wire.Bind(new(matlabmanager.MATLABSessionStore), new(*matlabsessionstore.Store)),
 		wire.Bind(new(matlabmanager.MATLABSessionClientFactory), new(*matlabsessionclient.Factory)),
-		wire.Bind(new(matlabmanager.SessionDiscoverer), new(*sessiondiscovery.SessionDiscoverer)),
+		wire.Bind(new(matlabmanager.SessionSelector), new(*sessionselector.SessionSelector)),
+
+		// Session Selector
+		sessionselector.New,
+		wire.Bind(new(sessionselector.ConfigFactory), new(*config.Factory)),
+		wire.Bind(new(sessionselector.SessionDiscoverer), new(*sessiondiscovery.SessionDiscoverer)),
 
 		// MATLAB Services
 		matlabservices.New,

@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/matlab/matlab-mcp-core-server/internal/adaptors/matlabmanager/sessiondiscovery"
+	"github.com/matlab/matlab-mcp-core-server/internal/adaptors/matlabmanager/sessionselector/sessiondiscovery"
 	"github.com/matlab/matlab-mcp-core-server/internal/testutils"
-	mocks "github.com/matlab/matlab-mcp-core-server/mocks/adaptors/matlabmanager/sessiondiscovery"
+	mocks "github.com/matlab/matlab-mcp-core-server/mocks/adaptors/matlabmanager/sessionselector/sessiondiscovery"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -18,7 +18,10 @@ import (
 func TestNew_HappyPath(t *testing.T) {
 	// Arrange
 	mockAppDataDirGetter := &mocks.MockAppDataDirGetter{}
+	defer mockAppDataDirGetter.AssertExpectations(t)
+
 	mockOSLayer := &mocks.MockOSLayer{}
+	defer mockOSLayer.AssertExpectations(t)
 
 	// Act
 	result := sessiondiscovery.New(mockAppDataDirGetter, mockOSLayer)
@@ -30,6 +33,8 @@ func TestNew_HappyPath(t *testing.T) {
 func TestSessionDiscoverer_FromSessionDetails_HappyPath(t *testing.T) {
 	// Arrange
 	mockAppDataDirGetter := &mocks.MockAppDataDirGetter{}
+	defer mockAppDataDirGetter.AssertExpectations(t)
+
 	mockOSLayer := &mocks.MockOSLayer{}
 	defer mockOSLayer.AssertExpectations(t)
 
@@ -68,7 +73,10 @@ func TestSessionDiscoverer_FromSessionDetails_HappyPath(t *testing.T) {
 func TestSessionDiscoverer_FromSessionDetails_InvalidJSON(t *testing.T) {
 	// Arrange
 	mockAppDataDirGetter := &mocks.MockAppDataDirGetter{}
+	defer mockAppDataDirGetter.AssertExpectations(t)
+
 	mockOSLayer := &mocks.MockOSLayer{}
+	defer mockOSLayer.AssertExpectations(t)
 
 	mockLogger := testutils.NewInspectableLogger()
 
@@ -87,7 +95,10 @@ func TestSessionDiscoverer_FromSessionDetails_InvalidJSON(t *testing.T) {
 func TestSessionDiscoverer_FromSessionDetails_MissingPort(t *testing.T) {
 	// Arrange
 	mockAppDataDirGetter := &mocks.MockAppDataDirGetter{}
+	defer mockAppDataDirGetter.AssertExpectations(t)
+
 	mockOSLayer := &mocks.MockOSLayer{}
+	defer mockOSLayer.AssertExpectations(t)
 
 	mockLogger := testutils.NewInspectableLogger()
 
@@ -110,7 +121,10 @@ func TestSessionDiscoverer_FromSessionDetails_MissingPort(t *testing.T) {
 func TestSessionDiscoverer_FromSessionDetails_PortNotANumber(t *testing.T) {
 	// Arrange
 	mockAppDataDirGetter := &mocks.MockAppDataDirGetter{}
+	defer mockAppDataDirGetter.AssertExpectations(t)
+
 	mockOSLayer := &mocks.MockOSLayer{}
+	defer mockOSLayer.AssertExpectations(t)
 
 	mockLogger := testutils.NewInspectableLogger()
 
@@ -129,7 +143,10 @@ func TestSessionDiscoverer_FromSessionDetails_PortNotANumber(t *testing.T) {
 func TestSessionDiscoverer_FromSessionDetails_PortNotAnInt(t *testing.T) {
 	// Arrange
 	mockAppDataDirGetter := &mocks.MockAppDataDirGetter{}
+	defer mockAppDataDirGetter.AssertExpectations(t)
+
 	mockOSLayer := &mocks.MockOSLayer{}
+	defer mockOSLayer.AssertExpectations(t)
 
 	mockLogger := testutils.NewInspectableLogger()
 
@@ -148,8 +165,10 @@ func TestSessionDiscoverer_FromSessionDetails_PortNotAnInt(t *testing.T) {
 func TestSessionDiscoverer_FromSessionDetails_PortBelowRange(t *testing.T) {
 	// Arrange
 	mockAppDataDirGetter := &mocks.MockAppDataDirGetter{}
+	defer mockAppDataDirGetter.AssertExpectations(t)
 
 	mockOSLayer := &mocks.MockOSLayer{}
+	defer mockOSLayer.AssertExpectations(t)
 
 	mockLogger := testutils.NewInspectableLogger()
 
@@ -173,8 +192,10 @@ func TestSessionDiscoverer_FromSessionDetails_PortBelowRange(t *testing.T) {
 func TestSessionDiscoverer_FromSessionDetails_PortAboveRange(t *testing.T) {
 	// Arrange
 	mockAppDataDirGetter := &mocks.MockAppDataDirGetter{}
+	defer mockAppDataDirGetter.AssertExpectations(t)
 
 	mockOSLayer := &mocks.MockOSLayer{}
+	defer mockOSLayer.AssertExpectations(t)
 
 	mockLogger := testutils.NewInspectableLogger()
 
@@ -198,6 +219,7 @@ func TestSessionDiscoverer_FromSessionDetails_PortAboveRange(t *testing.T) {
 func TestSessionDiscoverer_FromSessionDetails_EmptyAPIKey(t *testing.T) {
 	// Arrange
 	mockAppDataDirGetter := &mocks.MockAppDataDirGetter{}
+	defer mockAppDataDirGetter.AssertExpectations(t)
 
 	mockOSLayer := &mocks.MockOSLayer{}
 	defer mockOSLayer.AssertExpectations(t)
@@ -224,6 +246,8 @@ func TestSessionDiscoverer_FromSessionDetails_EmptyAPIKey(t *testing.T) {
 func TestSessionDiscoverer_FromSessionDetails_CertificateReadError(t *testing.T) {
 	// Arrange
 	mockAppDataDirGetter := &mocks.MockAppDataDirGetter{}
+	defer mockAppDataDirGetter.AssertExpectations(t)
+
 	mockOSLayer := &mocks.MockOSLayer{}
 	defer mockOSLayer.AssertExpectations(t)
 
@@ -256,6 +280,7 @@ func TestSessionDiscoverer_FromSessionDetails_CertificateReadError(t *testing.T)
 func TestSessionDiscoverer_FromSessionDetails_EmptyCertificatePEM(t *testing.T) {
 	// Arrange
 	mockAppDataDirGetter := &mocks.MockAppDataDirGetter{}
+	defer mockAppDataDirGetter.AssertExpectations(t)
 
 	mockOSLayer := &mocks.MockOSLayer{}
 	defer mockOSLayer.AssertExpectations(t)

@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/matlab/matlab-mcp-core-server/internal/adaptors/globalmatlab"
-	"github.com/matlab/matlab-mcp-core-server/internal/adaptors/matlabmanager"
+	"github.com/matlab/matlab-mcp-core-server/internal/adaptors/globalmatlab/sessionmanager"
 	"github.com/matlab/matlab-mcp-core-server/internal/entities"
 	"github.com/matlab/matlab-mcp-core-server/internal/messages"
 	"github.com/matlab/matlab-mcp-core-server/internal/testutils"
@@ -119,7 +119,7 @@ func TestGlobalMATLAB_Client_DiscoveryErrorNotCached_RetrySucceeds(t *testing.T)
 
 	mockMATLABManagerAdaptor.EXPECT().
 		StartSession(ctx, mockLogger.AsMockArg()).
-		Return(entities.SessionID(0), matlabmanager.ErrNoMATLABSessionDiscovered).
+		Return(entities.SessionID(0), sessionmanager.ErrFailedToAttachToMATLABSession).
 		Once()
 
 	mockMATLABManagerAdaptor.EXPECT().
@@ -140,7 +140,7 @@ func TestGlobalMATLAB_Client_DiscoveryErrorNotCached_RetrySucceeds(t *testing.T)
 
 	// Assert
 	require.Nil(t, client1)
-	require.ErrorIs(t, err1, matlabmanager.ErrNoMATLABSessionDiscovered)
+	require.ErrorIs(t, err1, sessionmanager.ErrFailedToAttachToMATLABSession)
 
 	require.Equal(t, expectedSessionClient, client2)
 	require.NoError(t, err2)
@@ -157,7 +157,7 @@ func TestGlobalMATLAB_Client_DiscoveryErrorNotCached_RetryAlsoFails(t *testing.T
 
 	mockMATLABManagerAdaptor.EXPECT().
 		StartSession(ctx, mockLogger.AsMockArg()).
-		Return(entities.SessionID(0), matlabmanager.ErrNoMATLABSessionDiscovered).
+		Return(entities.SessionID(0), sessionmanager.ErrFailedToAttachToMATLABSession).
 		Twice()
 
 	globalMATLAB := globalmatlab.New(mockMATLABManagerAdaptor)
@@ -168,10 +168,10 @@ func TestGlobalMATLAB_Client_DiscoveryErrorNotCached_RetryAlsoFails(t *testing.T
 
 	// Assert
 	require.Nil(t, client1)
-	require.ErrorIs(t, err1, matlabmanager.ErrNoMATLABSessionDiscovered)
+	require.ErrorIs(t, err1, sessionmanager.ErrFailedToAttachToMATLABSession)
 
 	require.Nil(t, client2)
-	require.ErrorIs(t, err2, matlabmanager.ErrNoMATLABSessionDiscovered)
+	require.ErrorIs(t, err2, sessionmanager.ErrFailedToAttachToMATLABSession)
 }
 
 func TestGlobalMATLAB_Client_GetMATLABSessionClientError_RetrySucceeds(t *testing.T) {
@@ -436,7 +436,7 @@ func TestGlobalMATLAB_Client_RestartDiscoveryErrorNotCached_RetrySucceeds(t *tes
 
 	mockMATLABManagerAdaptor.EXPECT().
 		StartSession(ctx, mockLogger.AsMockArg()).
-		Return(entities.SessionID(0), matlabmanager.ErrNoMATLABSessionDiscovered).
+		Return(entities.SessionID(0), sessionmanager.ErrFailedToAttachToMATLABSession).
 		Once()
 
 	// Second call: discovery succeeds on retry
@@ -458,7 +458,7 @@ func TestGlobalMATLAB_Client_RestartDiscoveryErrorNotCached_RetrySucceeds(t *tes
 
 	// Assert
 	require.Nil(t, client1)
-	require.ErrorIs(t, err1, matlabmanager.ErrNoMATLABSessionDiscovered)
+	require.ErrorIs(t, err1, sessionmanager.ErrFailedToAttachToMATLABSession)
 
 	require.Equal(t, expectedSessionClient, client2)
 	require.NoError(t, err2)

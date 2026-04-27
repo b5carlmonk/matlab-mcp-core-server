@@ -10,9 +10,7 @@ import (
 	"github.com/matlab/matlab-mcp-core-server/internal/adaptors/matlabmanager/matlabservices/datatypes"
 	"github.com/matlab/matlab-mcp-core-server/internal/adaptors/matlabmanager/matlabsessionclient/embeddedconnector"
 	"github.com/matlab/matlab-mcp-core-server/internal/entities"
-	"github.com/matlab/matlab-mcp-core-server/internal/messages"
 	"github.com/matlab/matlab-mcp-core-server/internal/testutils"
-	configmocks "github.com/matlab/matlab-mcp-core-server/mocks/adaptors/application/config"
 	mocks "github.com/matlab/matlab-mcp-core-server/mocks/adaptors/matlabmanager"
 	entitiesmocks "github.com/matlab/matlab-mcp-core-server/mocks/entities"
 	"github.com/stretchr/testify/assert"
@@ -33,8 +31,8 @@ func TestMATLABManager_StartMATLABSession_HappyPath(t *testing.T) {
 	mockClientFactory := &mocks.MockMATLABSessionClientFactory{}
 	defer mockClientFactory.AssertExpectations(t)
 
-	mockSessionDiscoverer := &mocks.MockSessionDiscoverer{}
-	defer mockSessionDiscoverer.AssertExpectations(t)
+	mockSessionSelector := &mocks.MockSessionSelector{}
+	defer mockSessionSelector.AssertExpectations(t)
 
 	mockConfigFactory := &mocks.MockConfigFactory{}
 	defer mockConfigFactory.AssertExpectations(t)
@@ -72,7 +70,7 @@ func TestMATLABManager_StartMATLABSession_HappyPath(t *testing.T) {
 		Return(expectedSessionID).
 		Once()
 
-	manager := matlabmanager.New(mockConfigFactory, mockMATLABServices, mockSessionStore, mockClientFactory, mockSessionDiscoverer)
+	manager := matlabmanager.New(mockConfigFactory, mockMATLABServices, mockSessionStore, mockClientFactory, mockSessionSelector)
 
 	startRequest := entities.LocalSessionDetails{
 		MATLABRoot:             expectedMATLABRoot,
@@ -100,8 +98,8 @@ func TestMATLABManager_StartMATLABSession_MATLABServicesError(t *testing.T) {
 	mockClientFactory := &mocks.MockMATLABSessionClientFactory{}
 	defer mockClientFactory.AssertExpectations(t)
 
-	mockSessionDiscoverer := &mocks.MockSessionDiscoverer{}
-	defer mockSessionDiscoverer.AssertExpectations(t)
+	mockSessionSelector := &mocks.MockSessionSelector{}
+	defer mockSessionSelector.AssertExpectations(t)
 
 	mockConfigFactory := &mocks.MockConfigFactory{}
 	defer mockConfigFactory.AssertExpectations(t)
@@ -121,7 +119,7 @@ func TestMATLABManager_StartMATLABSession_MATLABServicesError(t *testing.T) {
 		Return(embeddedconnector.ConnectionDetails{}, nil, expectedError).
 		Once()
 
-	manager := matlabmanager.New(mockConfigFactory, mockMATLABServices, mockSessionStore, mockClientFactory, mockSessionDiscoverer)
+	manager := matlabmanager.New(mockConfigFactory, mockMATLABServices, mockSessionStore, mockClientFactory, mockSessionSelector)
 
 	startRequest := entities.LocalSessionDetails{
 		MATLABRoot:             expectedMATLABRoot,
@@ -149,8 +147,8 @@ func TestMATLABManager_StartMATLABSession_ClientFactoryError(t *testing.T) {
 	mockClientFactory := &mocks.MockMATLABSessionClientFactory{}
 	defer mockClientFactory.AssertExpectations(t)
 
-	mockSessionDiscoverer := &mocks.MockSessionDiscoverer{}
-	defer mockSessionDiscoverer.AssertExpectations(t)
+	mockSessionSelector := &mocks.MockSessionSelector{}
+	defer mockSessionSelector.AssertExpectations(t)
 
 	mockConfigFactory := &mocks.MockConfigFactory{}
 	defer mockConfigFactory.AssertExpectations(t)
@@ -180,7 +178,7 @@ func TestMATLABManager_StartMATLABSession_ClientFactoryError(t *testing.T) {
 		Return(nil, expectedError).
 		Once()
 
-	manager := matlabmanager.New(mockConfigFactory, mockMATLABServices, mockSessionStore, mockClientFactory, mockSessionDiscoverer)
+	manager := matlabmanager.New(mockConfigFactory, mockMATLABServices, mockSessionStore, mockClientFactory, mockSessionSelector)
 
 	startRequest := entities.LocalSessionDetails{
 		MATLABRoot:             expectedMATLABRoot,
@@ -202,9 +200,6 @@ func TestMATLABManager_StartMATLABSession_AttachToExistingSession_HappyPath(t *t
 	mockConfigFactory := &mocks.MockConfigFactory{}
 	defer mockConfigFactory.AssertExpectations(t)
 
-	mockConfig := &configmocks.MockConfig{}
-	defer mockConfig.AssertExpectations(t)
-
 	mockMATLABServices := &mocks.MockMATLABServices{}
 	defer mockMATLABServices.AssertExpectations(t)
 
@@ -214,112 +209,23 @@ func TestMATLABManager_StartMATLABSession_AttachToExistingSession_HappyPath(t *t
 	mockClientFactory := &mocks.MockMATLABSessionClientFactory{}
 	defer mockClientFactory.AssertExpectations(t)
 
-	mockSessionDiscoverer := &mocks.MockSessionDiscoverer{}
-	defer mockSessionDiscoverer.AssertExpectations(t)
+	mockSessionSelector := &mocks.MockSessionSelector{}
+	defer mockSessionSelector.AssertExpectations(t)
 
 	mockSessionClient := &entitiesmocks.MockMATLABSessionClient{}
 	defer mockSessionClient.AssertExpectations(t)
 
 	expectedSessionID := entities.SessionID(42)
-
 	expectedConnectionDetails := embeddedconnector.ConnectionDetails{
 		Host:           "localhost",
 		Port:           "31515",
 		APIKey:         "test-api-key",
 		CertificatePEM: []byte("cert-content"),
 	}
-
 	expectedCtx := t.Context()
 
-	mockConfigFactory.EXPECT().
-		Config().
-		Return(mockConfig, nil).
-		Once()
-
-	mockConfig.EXPECT().
-		MATLABSessionConnectionDetails().
-		Return("").
-		Once()
-
-	mockSessionDiscoverer.EXPECT().
-		DiscoverSessions(mockLogger.AsMockArg()).
-		Return([]embeddedconnector.ConnectionDetails{expectedConnectionDetails}).
-		Once()
-
-	mockClientFactory.EXPECT().
-		New(expectedConnectionDetails).
-		Return(mockSessionClient, nil).
-		Once()
-
-	mockSessionClient.EXPECT().
-		Ping(expectedCtx, mockLogger.AsMockArg()).
-		Return(entities.PingResponse{IsAlive: true}).
-		Once()
-
-	mockSessionStore.EXPECT().
-		Add(mock.AnythingOfType("*matlabmanager.matlabSessionClientWithoutCleanup")).
-		Return(expectedSessionID).
-		Once()
-
-	manager := matlabmanager.New(mockConfigFactory, mockMATLABServices, mockSessionStore, mockClientFactory, mockSessionDiscoverer)
-
-	// Act
-	sessionID, err := manager.StartMATLABSession(expectedCtx, mockLogger, entities.AttachToExistingSession{})
-
-	// Assert
-	require.NoError(t, err)
-	assert.Equal(t, expectedSessionID, sessionID)
-}
-
-func TestMATLABManager_StartMATLABSession_AttachToExistingSession_WithProvidedDetails(t *testing.T) {
-	// Arrange
-	mockLogger := testutils.NewInspectableLogger()
-
-	mockConfigFactory := &mocks.MockConfigFactory{}
-	defer mockConfigFactory.AssertExpectations(t)
-
-	mockConfig := &configmocks.MockConfig{}
-	defer mockConfig.AssertExpectations(t)
-
-	mockMATLABServices := &mocks.MockMATLABServices{}
-	defer mockMATLABServices.AssertExpectations(t)
-
-	mockSessionStore := &mocks.MockMATLABSessionStore{}
-	defer mockSessionStore.AssertExpectations(t)
-
-	mockClientFactory := &mocks.MockMATLABSessionClientFactory{}
-	defer mockClientFactory.AssertExpectations(t)
-
-	mockSessionDiscoverer := &mocks.MockSessionDiscoverer{}
-	defer mockSessionDiscoverer.AssertExpectations(t)
-
-	mockSessionClient := &entitiesmocks.MockMATLABSessionClient{}
-	defer mockSessionClient.AssertExpectations(t)
-
-	expectedSessionID := entities.SessionID(42)
-
-	sessionDetailsJSON := `{"port":31515,"certificate":"/path/to/cert.pem","apiKey":"test-api-key"}`
-	expectedConnectionDetails := embeddedconnector.ConnectionDetails{
-		Host:           "localhost",
-		Port:           "31515",
-		APIKey:         "test-api-key",
-		CertificatePEM: []byte("cert-content"),
-	}
-
-	expectedCtx := t.Context()
-
-	mockConfigFactory.EXPECT().
-		Config().
-		Return(mockConfig, nil).
-		Once()
-
-	mockConfig.EXPECT().
-		MATLABSessionConnectionDetails().
-		Return(sessionDetailsJSON).
-		Once()
-
-	mockSessionDiscoverer.EXPECT().
-		FromSessionDetails(mockLogger.AsMockArg(), []byte(sessionDetailsJSON)).
+	mockSessionSelector.EXPECT().
+		SelectSessionToAttachTo(mockLogger.AsMockArg()).
 		Return(expectedConnectionDetails, nil).
 		Once()
 
@@ -338,7 +244,7 @@ func TestMATLABManager_StartMATLABSession_AttachToExistingSession_WithProvidedDe
 		Return(expectedSessionID).
 		Once()
 
-	manager := matlabmanager.New(mockConfigFactory, mockMATLABServices, mockSessionStore, mockClientFactory, mockSessionDiscoverer)
+	manager := matlabmanager.New(mockConfigFactory, mockMATLABServices, mockSessionStore, mockClientFactory, mockSessionSelector)
 
 	// Act
 	sessionID, err := manager.StartMATLABSession(expectedCtx, mockLogger, entities.AttachToExistingSession{})
@@ -348,15 +254,12 @@ func TestMATLABManager_StartMATLABSession_AttachToExistingSession_WithProvidedDe
 	assert.Equal(t, expectedSessionID, sessionID)
 }
 
-func TestMATLABManager_StartMATLABSession_AttachToExistingSession_ProvidedDetailsError(t *testing.T) {
+func TestMATLABManager_StartMATLABSession_AttachToExistingSession_SessionSelectorError(t *testing.T) {
 	// Arrange
 	mockLogger := testutils.NewInspectableLogger()
 
 	mockConfigFactory := &mocks.MockConfigFactory{}
 	defer mockConfigFactory.AssertExpectations(t)
-
-	mockConfig := &configmocks.MockConfig{}
-	defer mockConfig.AssertExpectations(t)
 
 	mockMATLABServices := &mocks.MockMATLABServices{}
 	defer mockMATLABServices.AssertExpectations(t)
@@ -367,205 +270,24 @@ func TestMATLABManager_StartMATLABSession_AttachToExistingSession_ProvidedDetail
 	mockClientFactory := &mocks.MockMATLABSessionClientFactory{}
 	defer mockClientFactory.AssertExpectations(t)
 
-	mockSessionDiscoverer := &mocks.MockSessionDiscoverer{}
-	defer mockSessionDiscoverer.AssertExpectations(t)
-
-	sessionDetailsJSON := `invalid json`
-	expectedError := assert.AnError
+	mockSessionSelector := &mocks.MockSessionSelector{}
+	defer mockSessionSelector.AssertExpectations(t)
 
 	expectedCtx := t.Context()
 
-	mockConfigFactory.EXPECT().
-		Config().
-		Return(mockConfig, nil).
+	mockSessionSelector.EXPECT().
+		SelectSessionToAttachTo(mockLogger.AsMockArg()).
+		Return(embeddedconnector.ConnectionDetails{}, assert.AnError).
 		Once()
 
-	mockConfig.EXPECT().
-		MATLABSessionConnectionDetails().
-		Return(sessionDetailsJSON).
-		Once()
-
-	mockSessionDiscoverer.EXPECT().
-		FromSessionDetails(mockLogger.AsMockArg(), []byte(sessionDetailsJSON)).
-		Return(embeddedconnector.ConnectionDetails{}, expectedError).
-		Once()
-
-	manager := matlabmanager.New(mockConfigFactory, mockMATLABServices, mockSessionStore, mockClientFactory, mockSessionDiscoverer)
+	manager := matlabmanager.New(mockConfigFactory, mockMATLABServices, mockSessionStore, mockClientFactory, mockSessionSelector)
 
 	// Act
 	sessionID, err := manager.StartMATLABSession(expectedCtx, mockLogger, entities.AttachToExistingSession{})
 
 	// Assert
-	require.ErrorIs(t, err, expectedError)
+	require.ErrorIs(t, err, assert.AnError)
 	assert.Empty(t, sessionID)
-}
-
-func TestMATLABManager_StartMATLABSession_AttachToExistingSession_ConfigFactoryError(t *testing.T) {
-	// Arrange
-	mockLogger := testutils.NewInspectableLogger()
-
-	mockConfigFactory := &mocks.MockConfigFactory{}
-	defer mockConfigFactory.AssertExpectations(t)
-
-	mockMATLABServices := &mocks.MockMATLABServices{}
-	defer mockMATLABServices.AssertExpectations(t)
-
-	mockSessionStore := &mocks.MockMATLABSessionStore{}
-	defer mockSessionStore.AssertExpectations(t)
-
-	mockClientFactory := &mocks.MockMATLABSessionClientFactory{}
-	defer mockClientFactory.AssertExpectations(t)
-
-	mockSessionDiscoverer := &mocks.MockSessionDiscoverer{}
-	defer mockSessionDiscoverer.AssertExpectations(t)
-
-	expectedCtx := t.Context()
-
-	mockConfigFactory.EXPECT().
-		Config().
-		Return(nil, messages.AnError).
-		Once()
-
-	manager := matlabmanager.New(mockConfigFactory, mockMATLABServices, mockSessionStore, mockClientFactory, mockSessionDiscoverer)
-
-	// Act
-	sessionID, err := manager.StartMATLABSession(expectedCtx, mockLogger, entities.AttachToExistingSession{})
-
-	// Assert
-	require.ErrorIs(t, err, messages.AnError)
-	assert.Empty(t, sessionID)
-}
-
-func TestMATLABManager_StartMATLABSession_AttachToExistingSession_NoSessionsDiscovered(t *testing.T) {
-	// Arrange
-	mockLogger := testutils.NewInspectableLogger()
-
-	mockConfigFactory := &mocks.MockConfigFactory{}
-	defer mockConfigFactory.AssertExpectations(t)
-
-	mockConfig := &configmocks.MockConfig{}
-	defer mockConfig.AssertExpectations(t)
-
-	mockMATLABServices := &mocks.MockMATLABServices{}
-	defer mockMATLABServices.AssertExpectations(t)
-
-	mockSessionStore := &mocks.MockMATLABSessionStore{}
-	defer mockSessionStore.AssertExpectations(t)
-
-	mockClientFactory := &mocks.MockMATLABSessionClientFactory{}
-	defer mockClientFactory.AssertExpectations(t)
-
-	mockSessionDiscoverer := &mocks.MockSessionDiscoverer{}
-	defer mockSessionDiscoverer.AssertExpectations(t)
-
-	expectedCtx := t.Context()
-
-	mockConfigFactory.EXPECT().
-		Config().
-		Return(mockConfig, nil).
-		Once()
-
-	mockConfig.EXPECT().
-		MATLABSessionConnectionDetails().
-		Return("").
-		Once()
-
-	mockSessionDiscoverer.EXPECT().
-		DiscoverSessions(mockLogger.AsMockArg()).
-		Return(nil).
-		Once()
-
-	manager := matlabmanager.New(mockConfigFactory, mockMATLABServices, mockSessionStore, mockClientFactory, mockSessionDiscoverer)
-
-	// Act
-	sessionID, err := manager.StartMATLABSession(expectedCtx, mockLogger, entities.AttachToExistingSession{})
-
-	// Assert
-	require.ErrorIs(t, err, matlabmanager.ErrNoMATLABSessionDiscovered)
-	assert.Empty(t, sessionID)
-}
-
-func TestMATLABManager_StartMATLABSession_AttachToExistingSession_MultipleSessionsUsesFirst(t *testing.T) {
-	// Arrange
-	mockLogger := testutils.NewInspectableLogger()
-
-	mockConfigFactory := &mocks.MockConfigFactory{}
-	defer mockConfigFactory.AssertExpectations(t)
-
-	mockConfig := &configmocks.MockConfig{}
-	defer mockConfig.AssertExpectations(t)
-
-	mockMATLABServices := &mocks.MockMATLABServices{}
-	defer mockMATLABServices.AssertExpectations(t)
-
-	mockSessionStore := &mocks.MockMATLABSessionStore{}
-	defer mockSessionStore.AssertExpectations(t)
-
-	mockClientFactory := &mocks.MockMATLABSessionClientFactory{}
-	defer mockClientFactory.AssertExpectations(t)
-
-	mockSessionDiscoverer := &mocks.MockSessionDiscoverer{}
-	defer mockSessionDiscoverer.AssertExpectations(t)
-
-	mockSessionClient := &entitiesmocks.MockMATLABSessionClient{}
-	defer mockSessionClient.AssertExpectations(t)
-
-	expectedSessionID := entities.SessionID(100)
-
-	firstConnectionDetails := embeddedconnector.ConnectionDetails{
-		Host:           "localhost",
-		Port:           "31515",
-		APIKey:         "first-api-key",
-		CertificatePEM: []byte("first-cert"),
-	}
-
-	secondConnectionDetails := embeddedconnector.ConnectionDetails{
-		Host:           "localhost",
-		Port:           "31516",
-		APIKey:         "second-api-key",
-		CertificatePEM: []byte("second-cert"),
-	}
-
-	expectedCtx := t.Context()
-
-	mockConfigFactory.EXPECT().
-		Config().
-		Return(mockConfig, nil).
-		Once()
-
-	mockConfig.EXPECT().
-		MATLABSessionConnectionDetails().
-		Return("").
-		Once()
-
-	mockSessionDiscoverer.EXPECT().
-		DiscoverSessions(mockLogger.AsMockArg()).
-		Return([]embeddedconnector.ConnectionDetails{firstConnectionDetails, secondConnectionDetails}).
-		Once()
-
-	mockClientFactory.EXPECT().
-		New(firstConnectionDetails).
-		Return(mockSessionClient, nil).
-		Once()
-
-	mockSessionClient.EXPECT().
-		Ping(expectedCtx, mockLogger.AsMockArg()).
-		Return(entities.PingResponse{IsAlive: true}).
-		Once()
-
-	mockSessionStore.EXPECT().
-		Add(mock.AnythingOfType("*matlabmanager.matlabSessionClientWithoutCleanup")).
-		Return(expectedSessionID).
-		Once()
-
-	manager := matlabmanager.New(mockConfigFactory, mockMATLABServices, mockSessionStore, mockClientFactory, mockSessionDiscoverer)
-
-	// Act
-	sessionID, err := manager.StartMATLABSession(expectedCtx, mockLogger, entities.AttachToExistingSession{})
-
-	// Assert
-	require.NoError(t, err)
-	assert.Equal(t, expectedSessionID, sessionID)
 }
 
 func TestMATLABManager_StartMATLABSession_AttachToExistingSession_ClientFactoryError(t *testing.T) {
@@ -575,9 +297,6 @@ func TestMATLABManager_StartMATLABSession_AttachToExistingSession_ClientFactoryE
 	mockConfigFactory := &mocks.MockConfigFactory{}
 	defer mockConfigFactory.AssertExpectations(t)
 
-	mockConfig := &configmocks.MockConfig{}
-	defer mockConfig.AssertExpectations(t)
-
 	mockMATLABServices := &mocks.MockMATLABServices{}
 	defer mockMATLABServices.AssertExpectations(t)
 
@@ -587,8 +306,8 @@ func TestMATLABManager_StartMATLABSession_AttachToExistingSession_ClientFactoryE
 	mockClientFactory := &mocks.MockMATLABSessionClientFactory{}
 	defer mockClientFactory.AssertExpectations(t)
 
-	mockSessionDiscoverer := &mocks.MockSessionDiscoverer{}
-	defer mockSessionDiscoverer.AssertExpectations(t)
+	mockSessionSelector := &mocks.MockSessionSelector{}
+	defer mockSessionSelector.AssertExpectations(t)
 
 	expectedConnectionDetails := embeddedconnector.ConnectionDetails{
 		Host:           "localhost",
@@ -596,37 +315,25 @@ func TestMATLABManager_StartMATLABSession_AttachToExistingSession_ClientFactoryE
 		APIKey:         "key",
 		CertificatePEM: []byte("cert"),
 	}
-	expectedError := assert.AnError
-
 	expectedCtx := t.Context()
 
-	mockConfigFactory.EXPECT().
-		Config().
-		Return(mockConfig, nil).
-		Once()
-
-	mockConfig.EXPECT().
-		MATLABSessionConnectionDetails().
-		Return("").
-		Once()
-
-	mockSessionDiscoverer.EXPECT().
-		DiscoverSessions(mockLogger.AsMockArg()).
-		Return([]embeddedconnector.ConnectionDetails{expectedConnectionDetails}).
+	mockSessionSelector.EXPECT().
+		SelectSessionToAttachTo(mockLogger.AsMockArg()).
+		Return(expectedConnectionDetails, nil).
 		Once()
 
 	mockClientFactory.EXPECT().
 		New(expectedConnectionDetails).
-		Return(nil, expectedError).
+		Return(nil, assert.AnError).
 		Once()
 
-	manager := matlabmanager.New(mockConfigFactory, mockMATLABServices, mockSessionStore, mockClientFactory, mockSessionDiscoverer)
+	manager := matlabmanager.New(mockConfigFactory, mockMATLABServices, mockSessionStore, mockClientFactory, mockSessionSelector)
 
 	// Act
 	sessionID, err := manager.StartMATLABSession(expectedCtx, mockLogger, entities.AttachToExistingSession{})
 
 	// Assert
-	require.ErrorIs(t, err, expectedError)
+	require.ErrorIs(t, err, assert.AnError)
 	assert.Empty(t, sessionID)
 }
 
@@ -637,9 +344,6 @@ func TestMATLABManager_StartMATLABSession_AttachToExistingSession_PingFailure(t 
 	mockConfigFactory := &mocks.MockConfigFactory{}
 	defer mockConfigFactory.AssertExpectations(t)
 
-	mockConfig := &configmocks.MockConfig{}
-	defer mockConfig.AssertExpectations(t)
-
 	mockMATLABServices := &mocks.MockMATLABServices{}
 	defer mockMATLABServices.AssertExpectations(t)
 
@@ -649,8 +353,8 @@ func TestMATLABManager_StartMATLABSession_AttachToExistingSession_PingFailure(t 
 	mockClientFactory := &mocks.MockMATLABSessionClientFactory{}
 	defer mockClientFactory.AssertExpectations(t)
 
-	mockSessionDiscoverer := &mocks.MockSessionDiscoverer{}
-	defer mockSessionDiscoverer.AssertExpectations(t)
+	mockSessionSelector := &mocks.MockSessionSelector{}
+	defer mockSessionSelector.AssertExpectations(t)
 
 	mockSessionClient := &entitiesmocks.MockMATLABSessionClient{}
 	defer mockSessionClient.AssertExpectations(t)
@@ -661,91 +365,10 @@ func TestMATLABManager_StartMATLABSession_AttachToExistingSession_PingFailure(t 
 		APIKey:         "test-api-key",
 		CertificatePEM: []byte("cert-content"),
 	}
-
 	expectedCtx := t.Context()
 
-	mockConfigFactory.EXPECT().
-		Config().
-		Return(mockConfig, nil).
-		Once()
-
-	mockConfig.EXPECT().
-		MATLABSessionConnectionDetails().
-		Return("").
-		Once()
-
-	mockSessionDiscoverer.EXPECT().
-		DiscoverSessions(mockLogger.AsMockArg()).
-		Return([]embeddedconnector.ConnectionDetails{expectedConnectionDetails}).
-		Once()
-
-	mockClientFactory.EXPECT().
-		New(expectedConnectionDetails).
-		Return(mockSessionClient, nil).
-		Once()
-
-	mockSessionClient.EXPECT().
-		Ping(expectedCtx, mockLogger.AsMockArg()).
-		Return(entities.PingResponse{IsAlive: false}).
-		Once()
-
-	manager := matlabmanager.New(mockConfigFactory, mockMATLABServices, mockSessionStore, mockClientFactory, mockSessionDiscoverer)
-
-	// Act
-	sessionID, err := manager.StartMATLABSession(expectedCtx, mockLogger, entities.AttachToExistingSession{})
-
-	// Assert
-	require.ErrorIs(t, err, matlabmanager.ErrNoMATLABSessionDiscovered)
-	assert.Empty(t, sessionID)
-}
-
-func TestMATLABManager_StartMATLABSession_AttachToExistingSession_WithProvidedDetails_PingFailure(t *testing.T) {
-	// Arrange
-	mockLogger := testutils.NewInspectableLogger()
-
-	mockConfigFactory := &mocks.MockConfigFactory{}
-	defer mockConfigFactory.AssertExpectations(t)
-
-	mockConfig := &configmocks.MockConfig{}
-	defer mockConfig.AssertExpectations(t)
-
-	mockMATLABServices := &mocks.MockMATLABServices{}
-	defer mockMATLABServices.AssertExpectations(t)
-
-	mockSessionStore := &mocks.MockMATLABSessionStore{}
-	defer mockSessionStore.AssertExpectations(t)
-
-	mockClientFactory := &mocks.MockMATLABSessionClientFactory{}
-	defer mockClientFactory.AssertExpectations(t)
-
-	mockSessionDiscoverer := &mocks.MockSessionDiscoverer{}
-	defer mockSessionDiscoverer.AssertExpectations(t)
-
-	mockSessionClient := &entitiesmocks.MockMATLABSessionClient{}
-	defer mockSessionClient.AssertExpectations(t)
-
-	sessionDetailsJSON := `{"port":31515,"certificate":"/path/to/cert.pem","apiKey":"test-api-key"}`
-	expectedConnectionDetails := embeddedconnector.ConnectionDetails{
-		Host:           "localhost",
-		Port:           "31515",
-		APIKey:         "test-api-key",
-		CertificatePEM: []byte("cert-content"),
-	}
-
-	expectedCtx := t.Context()
-
-	mockConfigFactory.EXPECT().
-		Config().
-		Return(mockConfig, nil).
-		Once()
-
-	mockConfig.EXPECT().
-		MATLABSessionConnectionDetails().
-		Return(sessionDetailsJSON).
-		Once()
-
-	mockSessionDiscoverer.EXPECT().
-		FromSessionDetails(mockLogger.AsMockArg(), []byte(sessionDetailsJSON)).
+	mockSessionSelector.EXPECT().
+		SelectSessionToAttachTo(mockLogger.AsMockArg()).
 		Return(expectedConnectionDetails, nil).
 		Once()
 
@@ -759,12 +382,12 @@ func TestMATLABManager_StartMATLABSession_AttachToExistingSession_WithProvidedDe
 		Return(entities.PingResponse{IsAlive: false}).
 		Once()
 
-	manager := matlabmanager.New(mockConfigFactory, mockMATLABServices, mockSessionStore, mockClientFactory, mockSessionDiscoverer)
+	manager := matlabmanager.New(mockConfigFactory, mockMATLABServices, mockSessionStore, mockClientFactory, mockSessionSelector)
 
 	// Act
 	sessionID, err := manager.StartMATLABSession(expectedCtx, mockLogger, entities.AttachToExistingSession{})
 
 	// Assert
-	require.ErrorIs(t, err, matlabmanager.ErrNoMATLABSessionDiscovered)
+	require.ErrorIs(t, err, matlabmanager.ErrMATLABSessionNotAlive)
 	assert.Empty(t, sessionID)
 }

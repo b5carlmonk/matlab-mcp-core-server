@@ -33,17 +33,16 @@ type MATLABSessionClientFactory interface {
 	New(endpoint embeddedconnector.ConnectionDetails) (entities.MATLABSessionClient, error)
 }
 
-type SessionDiscoverer interface {
-	FromSessionDetails(logger entities.Logger, sessionDetails []byte) (embeddedconnector.ConnectionDetails, error)
-	DiscoverSessions(logger entities.Logger) []embeddedconnector.ConnectionDetails
+type SessionSelector interface {
+	SelectSessionToAttachTo(logger entities.Logger) (embeddedconnector.ConnectionDetails, error)
 }
 
 type MATLABManager struct {
-	configFactory     ConfigFactory
-	matlabServices    MATLABServices
-	sessionStore      MATLABSessionStore
-	clientFactory     MATLABSessionClientFactory
-	sessionDiscoverer SessionDiscoverer
+	configFactory   ConfigFactory
+	matlabServices  MATLABServices
+	sessionStore    MATLABSessionStore
+	clientFactory   MATLABSessionClientFactory
+	sessionSelector SessionSelector
 
 	matlabSessionConnectionRetryInterval time.Duration
 }
@@ -55,14 +54,14 @@ func New(
 	matlabServices MATLABServices,
 	sessionStore MATLABSessionStore,
 	clientFactory MATLABSessionClientFactory,
-	sessionDiscoverer SessionDiscoverer,
+	sessionSelector SessionSelector,
 ) *MATLABManager {
 	return &MATLABManager{
-		configFactory:     configFactory,
-		matlabServices:    matlabServices,
-		sessionStore:      sessionStore,
-		clientFactory:     clientFactory,
-		sessionDiscoverer: sessionDiscoverer,
+		configFactory:   configFactory,
+		matlabServices:  matlabServices,
+		sessionStore:    sessionStore,
+		clientFactory:   clientFactory,
+		sessionSelector: sessionSelector,
 
 		matlabSessionConnectionRetryInterval: defaultMATLABSessionConnectionRetryInterval,
 	}

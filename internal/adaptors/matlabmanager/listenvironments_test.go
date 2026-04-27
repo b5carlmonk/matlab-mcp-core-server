@@ -30,8 +30,8 @@ func TestMATLABManager_ListEnvironments_HappyPath(t *testing.T) {
 	mockClientFactory := &mocks.MockMATLABSessionClientFactory{}
 	defer mockClientFactory.AssertExpectations(t)
 
-	mockSessionDiscoverer := &mocks.MockSessionDiscoverer{}
-	defer mockSessionDiscoverer.AssertExpectations(t)
+	mockSessionSelector := &mocks.MockSessionSelector{}
+	defer mockSessionSelector.AssertExpectations(t)
 
 	expectedMatlabInfos := []datatypes.MatlabInfo{{
 		Location: filepath.Join("path", "to", "matlab", "R2023a"),
@@ -58,7 +58,7 @@ func TestMATLABManager_ListEnvironments_HappyPath(t *testing.T) {
 		Return(mockResponse).
 		Once()
 
-	manager := matlabmanager.New(mockConfigFactory, mockMATLABManager, mockSessionStore, mockClientFactory, mockSessionDiscoverer)
+	manager := matlabmanager.New(mockConfigFactory, mockMATLABManager, mockSessionStore, mockClientFactory, mockSessionSelector)
 	ctx := t.Context()
 
 	// Act
@@ -90,8 +90,8 @@ func TestMATLABManager_ListEnvironments_EmptyList(t *testing.T) {
 	mockClientFactory := &mocks.MockMATLABSessionClientFactory{}
 	defer mockClientFactory.AssertExpectations(t)
 
-	mockSessionDiscoverer := &mocks.MockSessionDiscoverer{}
-	defer mockSessionDiscoverer.AssertExpectations(t)
+	mockSessionSelector := &mocks.MockSessionSelector{}
+	defer mockSessionSelector.AssertExpectations(t)
 
 	mockResponse := datatypes.ListMatlabInfo{
 		MatlabInfo: []datatypes.MatlabInfo{},
@@ -101,7 +101,7 @@ func TestMATLABManager_ListEnvironments_EmptyList(t *testing.T) {
 		Return(mockResponse).
 		Once()
 
-	manager := matlabmanager.New(mockConfigFactory, mockMATLABManager, mockSessionStore, mockClientFactory, mockSessionDiscoverer)
+	manager := matlabmanager.New(mockConfigFactory, mockMATLABManager, mockSessionStore, mockClientFactory, mockSessionSelector)
 	ctx := t.Context()
 
 	// Act

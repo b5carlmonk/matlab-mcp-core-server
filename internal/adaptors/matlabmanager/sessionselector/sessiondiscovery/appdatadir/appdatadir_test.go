@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/matlab/matlab-mcp-core-server/internal/adaptors/matlabmanager/sessiondiscovery/appdatadir"
-	mocks "github.com/matlab/matlab-mcp-core-server/mocks/adaptors/matlabmanager/sessiondiscovery/appdatadir"
+	"github.com/matlab/matlab-mcp-core-server/internal/adaptors/matlabmanager/sessionselector/sessiondiscovery/appdatadir"
+	mocks "github.com/matlab/matlab-mcp-core-server/mocks/adaptors/matlabmanager/sessionselector/sessiondiscovery/appdatadir"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -15,6 +15,7 @@ import (
 func TestNew_HappyPath(t *testing.T) {
 	// Arrange
 	mockOSLayer := &mocks.MockOSLayer{}
+	defer mockOSLayer.AssertExpectations(t)
 
 	// Act
 	result := appdatadir.New(mockOSLayer)
@@ -102,6 +103,32 @@ func TestGetter_AppDataDir_Windows(t *testing.T) {
 	// Assert
 	require.NoError(t, err)
 	assert.Equal(t, filepath.Join(expectedAppData, "MathWorks", "MATLAB MCP Core Server"), result)
+}
+
+func TestGetter_AppDataDir_DarwinHomeDirError(t *testing.T) {
+	// Arrange
+	mockOSLayer := &mocks.MockOSLayer{}
+	defer mockOSLayer.AssertExpectations(t)
+
+	mockOSLayer.EXPECT().
+		GOOS().
+		Return("darwin").
+		Once()
+
+	mockOSLayer.EXPECT().
+		UserHomeDir().
+		Return("", assert.AnError).
+		Once()
+
+	getter := appdatadir.New(mockOSLayer)
+
+	// Act
+	result, err := getter.AppDataDir()
+
+	// Assert
+	require.Error(t, err)
+	require.ErrorIs(t, err, assert.AnError)
+	assert.Empty(t, result)
 }
 
 func TestGetter_AppDataDir_HomeDirError(t *testing.T) {

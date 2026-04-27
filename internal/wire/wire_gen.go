@@ -40,8 +40,9 @@ import (
 	"github.com/matlab/matlab-mcp-core-server/internal/adaptors/matlabmanager/matlabservices/services/matlablocator/matlabversion"
 	"github.com/matlab/matlab-mcp-core-server/internal/adaptors/matlabmanager/matlabsessionclient"
 	"github.com/matlab/matlab-mcp-core-server/internal/adaptors/matlabmanager/matlabsessionstore"
-	"github.com/matlab/matlab-mcp-core-server/internal/adaptors/matlabmanager/sessiondiscovery"
-	"github.com/matlab/matlab-mcp-core-server/internal/adaptors/matlabmanager/sessiondiscovery/appdatadir"
+	"github.com/matlab/matlab-mcp-core-server/internal/adaptors/matlabmanager/sessionselector"
+	"github.com/matlab/matlab-mcp-core-server/internal/adaptors/matlabmanager/sessionselector/sessiondiscovery"
+	"github.com/matlab/matlab-mcp-core-server/internal/adaptors/matlabmanager/sessionselector/sessiondiscovery/appdatadir"
 	"github.com/matlab/matlab-mcp-core-server/internal/adaptors/mcp/resources/codingguidelines"
 	"github.com/matlab/matlab-mcp-core-server/internal/adaptors/mcp/resources/plaintextlivecodegeneration"
 	server3 "github.com/matlab/matlab-mcp-core-server/internal/adaptors/mcp/server"
@@ -140,7 +141,8 @@ func Initialize(serverDefinition ApplicationDefinition) *Application {
 	matlabsessionclientFactory := matlabsessionclient.NewFactory(clientFactory)
 	appdatadirGetter := appdatadir.New(osFacade)
 	sessionDiscoverer := sessiondiscovery.New(appdatadirGetter, osFacade)
-	matlabManager := matlabmanager.New(factory, matlabServices, store, matlabsessionclientFactory, sessionDiscoverer)
+	sessionSelector := sessionselector.New(factory, sessionDiscoverer)
+	matlabManager := matlabmanager.New(factory, matlabServices, store, matlabsessionclientFactory, sessionSelector)
 	matlabRootSelector := matlabrootselector.New(factory, matlabManager)
 	rootPathResolver := rootpathresolver.New(osFacade)
 	matlabStartingDirSelector := matlabstartingdirselector.New(factory, osFacade, rootStore, rootPathResolver)

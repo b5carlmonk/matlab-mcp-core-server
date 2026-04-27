@@ -4,6 +4,7 @@ package sessionmanager
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"time"
 
@@ -12,6 +13,8 @@ import (
 	"github.com/matlab/matlab-mcp-core-server/internal/entities"
 	"github.com/matlab/matlab-mcp-core-server/internal/messages"
 )
+
+var ErrFailedToAttachToMATLABSession = errors.New("failed to attach to MATLAB session")
 
 const defaultDiscoveryRetryInterval = 1 * time.Second
 
@@ -75,6 +78,10 @@ func (s *SessionManager) StartSession(ctx context.Context, logger entities.Logge
 	switch cfg.MATLABSessionMode() {
 	case entities.MATLABSessionModeExisting:
 		sessionID, err = s.getSessionFromAttachingToExistingMATLAB(ctx, logger, cfg.MATLABSessionDiscoveryTimeout())
+		if err != nil {
+			logger.WithError(err).Debug("failed to attach to MATLAB session")
+			err = ErrFailedToAttachToMATLABSession
+		}
 	default:
 		sessionID, err = s.getSessionFromLocalMATLABInstallation(ctx, logger, cfg.ShouldShowMATLABDesktop())
 	}

@@ -28,8 +28,8 @@ func TestMATLABManager_StopMATLABSession_HappyPath(t *testing.T) {
 	mockClientFactory := &mocks.MockMATLABSessionClientFactory{}
 	defer mockClientFactory.AssertExpectations(t)
 
-	mockSessionDiscoverer := &mocks.MockSessionDiscoverer{}
-	defer mockSessionDiscoverer.AssertExpectations(t)
+	mockSessionSelector := &mocks.MockSessionSelector{}
+	defer mockSessionSelector.AssertExpectations(t)
 
 	mockConfigFactory := &mocks.MockConfigFactory{}
 	defer mockConfigFactory.AssertExpectations(t)
@@ -55,7 +55,7 @@ func TestMATLABManager_StopMATLABSession_HappyPath(t *testing.T) {
 		Return().
 		Once()
 
-	manager := matlabmanager.New(mockConfigFactory, mockMATLABServices, mockSessionStore, mockClientFactory, mockSessionDiscoverer)
+	manager := matlabmanager.New(mockConfigFactory, mockMATLABServices, mockSessionStore, mockClientFactory, mockSessionSelector)
 
 	// Act
 	err := manager.StopMATLABSession(ctx, mockLogger, expectedSessionID)
@@ -77,8 +77,8 @@ func TestMATLABManager_StopMATLABSession_SessionStoreGetError(t *testing.T) {
 	mockClientFactory := &mocks.MockMATLABSessionClientFactory{}
 	defer mockClientFactory.AssertExpectations(t)
 
-	mockSessionDiscoverer := &mocks.MockSessionDiscoverer{}
-	defer mockSessionDiscoverer.AssertExpectations(t)
+	mockSessionSelector := &mocks.MockSessionSelector{}
+	defer mockSessionSelector.AssertExpectations(t)
 
 	mockConfigFactory := &mocks.MockConfigFactory{}
 	defer mockConfigFactory.AssertExpectations(t)
@@ -92,7 +92,7 @@ func TestMATLABManager_StopMATLABSession_SessionStoreGetError(t *testing.T) {
 		Return(nil, expectedError).
 		Once()
 
-	manager := matlabmanager.New(mockConfigFactory, mockMATLABServices, mockSessionStore, mockClientFactory, mockSessionDiscoverer)
+	manager := matlabmanager.New(mockConfigFactory, mockMATLABServices, mockSessionStore, mockClientFactory, mockSessionSelector)
 
 	// Act
 	err := manager.StopMATLABSession(ctx, mockLogger, expectedSessionID)
@@ -114,8 +114,8 @@ func TestMATLABManager_StopMATLABSession_StopSessionError(t *testing.T) {
 	mockClientFactory := &mocks.MockMATLABSessionClientFactory{}
 	defer mockClientFactory.AssertExpectations(t)
 
-	mockSessionDiscoverer := &mocks.MockSessionDiscoverer{}
-	defer mockSessionDiscoverer.AssertExpectations(t)
+	mockSessionSelector := &mocks.MockSessionSelector{}
+	defer mockSessionSelector.AssertExpectations(t)
 
 	mockConfigFactory := &mocks.MockConfigFactory{}
 	defer mockConfigFactory.AssertExpectations(t)
@@ -142,7 +142,7 @@ func TestMATLABManager_StopMATLABSession_StopSessionError(t *testing.T) {
 		Return().
 		Once()
 
-	manager := matlabmanager.New(mockConfigFactory, mockMATLABServices, mockSessionStore, mockClientFactory, mockSessionDiscoverer)
+	manager := matlabmanager.New(mockConfigFactory, mockMATLABServices, mockSessionStore, mockClientFactory, mockSessionSelector)
 
 	// Act
 	err := manager.StopMATLABSession(ctx, mockLogger, expectedSessionID)

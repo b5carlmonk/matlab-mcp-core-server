@@ -109,7 +109,6 @@ func TestSessionManager_StartSession_AttachMode_StartMATLABSessionError(t *testi
 
 	ctx := context.WithValue(t.Context(), contextKey, contextKeyValue)
 	discoveryTimeout := 100 * time.Millisecond
-	expectedError := assert.AnError
 
 	expectedAttachSessionDetails := entities.AttachToExistingSession{}
 
@@ -132,8 +131,8 @@ func TestSessionManager_StartSession_AttachMode_StartMATLABSessionError(t *testi
 		StartMATLABSession(mock.MatchedBy(func(ctx context.Context) bool {
 			return ctx.Value(contextKey) == contextKeyValue
 		}), mockLogger.AsMockArg(), expectedAttachSessionDetails).
-		Return(entities.SessionID(0), expectedError).
-		Maybe()
+		Return(entities.SessionID(0), assert.AnError).
+		Once()
 
 	starter := sessionmanager.New(
 		mockMATLABManager,
@@ -146,7 +145,7 @@ func TestSessionManager_StartSession_AttachMode_StartMATLABSessionError(t *testi
 	sessionID, err := starter.StartSession(ctx, mockLogger)
 
 	// Assert
-	require.ErrorIs(t, err, expectedError)
+	require.ErrorIs(t, err, sessionmanager.ErrFailedToAttachToMATLABSession)
 	require.Equal(t, entities.SessionID(0), sessionID)
 }
 
@@ -324,7 +323,6 @@ func TestSessionManager_StartSession_AttachMode_RetryExhausted(t *testing.T) {
 		discoveryTimeout := 300 * time.Millisecond
 
 		expectedAttachSessionDetails := entities.AttachToExistingSession{}
-		expectedError := assert.AnError
 
 		mockConfigFactory.EXPECT().
 			Config().
@@ -345,7 +343,7 @@ func TestSessionManager_StartSession_AttachMode_RetryExhausted(t *testing.T) {
 			StartMATLABSession(mock.MatchedBy(func(ctx context.Context) bool {
 				return ctx.Value(contextKey) == contextKeyValue
 			}), mockLogger.AsMockArg(), expectedAttachSessionDetails).
-			Return(entities.SessionID(0), expectedError).
+			Return(entities.SessionID(0), assert.AnError).
 			Twice()
 
 		starter := sessionmanager.New(
@@ -360,6 +358,6 @@ func TestSessionManager_StartSession_AttachMode_RetryExhausted(t *testing.T) {
 		_, err := starter.StartSession(ctx, mockLogger)
 
 		// Assert
-		require.ErrorIs(t, err, expectedError)
+		require.ErrorIs(t, err, sessionmanager.ErrFailedToAttachToMATLABSession)
 	})
 }
