@@ -74,8 +74,9 @@ You install the MATLAB MCP Core Server in Claude Desktop using the MATLAB MCP Co
 
    To customize the behaviour of the MATLAB MCP Core Server, navigate to **Settings > Extensions > Configure**, where you can modify the server's [Arguments](#arguments).
 
-### GitHub Copilot in Visual Studio Code
+    - To use the `--matlab-session-mode=existing` argument, MATLAB needs to be set up by the MATLAB MCP Core Server. Download the MATLAB MCP Core Server binary for your platform following [Setup](#Setup) and run `./matlab-mcp-core-server --setup-matlab`.
 
+### GitHub Copilot in Visual Studio Code
 
 In your VS Code workspace, create a file named `.vscode/mcp.json`. Insert the following JSON, remembering to specify the full path to the server binary you acquired in the setup, as well as any [Arguments](#arguments). Then save the file. (Note that on Windows, your paths require extra slashes as escape characters).
 
@@ -91,8 +92,6 @@ In your VS Code workspace, create a file named `.vscode/mcp.json`. Insert the fo
 }
 ```
 For more information about using MCP servers in VS Code, see [Add and Manage MCP servers in VS Code (VS Code)](https://code.visualstudio.com/docs/copilot/customization/mcp-servers#_configure-the-mcpjson-file).
-
-
 
 ## Arguments
 
@@ -111,7 +110,6 @@ Customize the behavior of the server by providing arguments in the `args` array 
 | log-folder | Specify the folder where the MCP server stores log files. If not specified, the server uses the default temporary folder of your operating system. | Windows: `"--log-folder=C:\\Users\\name\\AppData\\Local\\Temp"` <br><br> Linux/macOS: `"--log-folder=/tmp/my-logs"`  |
 | log-level | The log levels of the MCP server. Valid values, in order of decreasing verbosity, are 'debug', 'info', 'warn', and 'error'. | `"--log-level=debug"` |
 | disable-telemetry | To disable anonymized data collection, set this argument to `true`. For details, see [Data Collection](#data-collection). | `"--disable-telemetry=true"` |
-
 
 ## Tools
 
