@@ -1,7 +1,5 @@
 // Copyright 2026 The MathWorks, Inc.
 
-//go:build !windows
-
 package mcpb_test
 
 import (
@@ -167,14 +165,8 @@ func assertStaticAssetsStaged(t *testing.T, stagingDir string) {
 	assert.Positive(t, info.Size())
 
 	launcherSh := filepath.Join(stagingDir, "bundle", "bin", "launch-matlab-mcp.sh")
-	shInfo, err := os.Stat(launcherSh)
-	require.NoError(t, err)
-	assert.Equal(t, os.FileMode(0o755), shInfo.Mode().Perm(), "launch-matlab-mcp.sh should be executable")
-
 	launcherCmd := filepath.Join(stagingDir, "bundle", "bin", "launch-matlab-mcp.cmd")
-	cmdInfo, err := os.Stat(launcherCmd)
-	require.NoError(t, err)
-	assert.Equal(t, os.FileMode(0o755), cmdInfo.Mode().Perm(), "launch-matlab-mcp.cmd should be executable")
+	assertLauncherPermissions(t, launcherSh, launcherCmd)
 }
 
 func assertEnvVarsMatchUserConfig(t *testing.T, manifest map[string]any, userConfig map[string]any) {

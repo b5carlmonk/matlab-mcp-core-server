@@ -24,6 +24,7 @@
 
 ifeq ($(OS),Windows_NT)
 	SHELL = powershell.exe
+	.SHELLFLAGS = -Command
 	RACE_FLAG =
 	RM_DIR = if (Test-Path "$(1)") { Remove-Item -Recurse -Force "$(1)" }
 	MK_DIR = New-Item -ItemType Directory -Force -Path "$(1)" | Out-Null
@@ -346,16 +347,33 @@ check-matlab-leaks:
 
 mcpb-stage: build-mcpb-gen
 ifeq ($(OS),Windows_NT)
-	@echo "Error: MCPB manifest generation is only supported on macOS/Linux"; exit 1
+	$$env:MCPB_STAGING_DIR='$(MCPB_STAGING_DIR)'; & "$(MCPB_GEN_BIN)"
 else
 	MCPB_STAGING_DIR="$(MCPB_STAGING_DIR)" "$(MCPB_GEN_BIN)"
 endif
 
-# Requires all 4 platform binaries in $(ALL_BIN_DIR).
-# Local dev: make mcpb-dev | CI/signed: populate all/ then make build-mcpb-bundle
-build-mcpb-bundle: mcpb-stage ensure-all-binaries-executable
+pack-mcpb-bundle: mcpb-stage ensure-all-binaries-executable
 ifeq ($(OS),Windows_NT)
-	@echo "Error: MCPB packaging is only supported on macOS/Linux"; exit 1
+	@Copy-Item "$(ALL_BIN_DIR)/matlab-mcp-core-server-*" "$(MCPB_STAGING_DIR)/bundle/bin/" -ErrorAction Stop
+	@Push-Location "$(MCPB_STAGING_DIR)"; \
+		npm i; \
+		if ($$LASTEXITCODE -ne 0) { Pop-Location; exit 1 }; \
+		npm run mcpb-pack -- "$(MCPB_FILENAME)"; \
+		$$ec = $$LASTEXITCODE; \
+		Pop-Location; \
+		exit $$ec
+	@Write-Host ""
+	@Write-Host "Created: $(MCPB_STAGING_DIR)/$(MCPB_FILENAME)"
+else
+	@cp "$(ALL_BIN_DIR)"/matlab-mcp-core-server-* "$(MCPB_STAGING_DIR)/bundle/bin/"
+	@cd "$(MCPB_STAGING_DIR)" && npm i && npm run mcpb-pack -- "$(MCPB_FILENAME)"
+	@echo ""
+	@echo "Created: $(MCPB_STAGING_DIR)/$(MCPB_FILENAME)"
+endif
+
+build-mcpb-bundle:
+ifeq ($(OS),Windows_NT)
+	@Write-Error "build-mcpb-bundle cannot be called directly on Windows. Use 'make mcpb-dev' instead."; exit 1
 else
 	@if [ ! -f "$(ALL_BIN_DIR)/matlab-mcp-core-server-glnxa64" ] || \
 		[ ! -f "$(ALL_BIN_DIR)/matlab-mcp-core-server-maca64" ] || \
@@ -365,22 +383,18 @@ else
 		echo "Run 'make mcpb-dev' for local builds, or populate $(ALL_BIN_DIR) with signed binaries."; \
 		exit 1; \
 	fi
-	@echo "Using binaries from $(ALL_BIN_DIR)"
-	@cp "$(ALL_BIN_DIR)"/matlab-mcp-core-server-* "$(MCPB_STAGING_DIR)/bundle/bin/"
-	@cd "$(MCPB_STAGING_DIR)" && npm i && npm run mcpb-pack -- "$(MCPB_FILENAME)"
-	@echo ""
-	@echo "Created: $(MCPB_STAGING_DIR)/$(MCPB_FILENAME)"
+	@$(MAKE) pack-mcpb-bundle
 endif
 
 mcpb-clean:
 	@$(call RM_DIR,$(MCPB_STAGING_DIR))
 	@echo "Removed $(MCPB_STAGING_DIR)"
 
-mcpb-dev: mcpb-clean build build-mcpb-bundle
+mcpb-dev: mcpb-clean build pack-mcpb-bundle
 
 mcpb-validate:
 ifeq ($(OS),Windows_NT)
-	@echo "Error: MCPB validation is only supported on macOS/Linux"; exit 1
+	@Push-Location "$(MCPB_STAGING_DIR)"; npm run mcpb-validate; $$ec = $$LASTEXITCODE; Pop-Location; exit $$ec
 else
 	cd "$(MCPB_STAGING_DIR)"; \
 	npm run mcpb-validate
