@@ -21,7 +21,9 @@ import (
 
 const (
 	// defaultPort is the default TCP port the MCP server listens on.
-	defaultPort = 8080
+	// Changed from 8080 to 9090 to avoid conflicts with other local dev servers
+	// (e.g. Docker dashboard, Portainer) that commonly occupy 8080.
+	defaultPort = 9090
 
 	// appName is the human-readable name of this application.
 	appName = "matlab-mcp-core-server"
