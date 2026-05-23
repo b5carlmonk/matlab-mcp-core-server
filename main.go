@@ -21,9 +21,9 @@ import (
 
 const (
 	// defaultPort is the default TCP port the MCP server listens on.
-	// Changed from 8080 to 9090 to avoid conflicts with other local dev servers
-	// (e.g. Docker dashboard, Portainer) that commonly occupy 8080.
-	defaultPort = 9090
+	// Using 7070 here instead of upstream's 9090 — on my machine both 8080 and
+	// 9090 are frequently taken by other dev tools (Portainer, local k8s, etc.).
+	defaultPort = 7070
 
 	// appName is the human-readable name of this application.
 	appName = "matlab-mcp-core-server"
@@ -49,9 +49,9 @@ func main() {
 	}
 
 	// Configure structured logger.
-	logger := log.New(os.Stderr, "[matlab-mcp] ", log.LstdFlags|log.Lshortfile)
+	// Personal preference: always include microseconds so timing issues are easier to spot.
+	logger := log.New(os.Stderr, "[matlab-mcp] ", log.LstdFlags|log.Lshortfile|log.Lmicroseconds)
 	if *verbose {
-		logger.SetFlags(log.LstdFlags | log.Lshortfile | log.Lmicroseconds)
 		logger.Println("Verbose logging enabled")
 	}
 
