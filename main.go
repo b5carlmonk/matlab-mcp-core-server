@@ -52,7 +52,14 @@ func main() {
 	// Personal preference: always include microseconds so timing issues are easier to spot.
 	// Also adding log.LUTC so timestamps are consistent regardless of local timezone —
 	// useful when comparing logs across machines.
-	logger := log.New(os.Stderr, "[matlab-mcp] ", log.LstdFlags|log.Lshortfile|log.Lmicroseconds|log.LUTC)
+	//
+	// Note: removed log.Lshortfile from the default flags — it adds noise in normal runs
+	// and I only really need it when actively debugging. Can re-enable with -verbose.
+	logFlags := log.LstdFlags | log.Lmicroseconds | log.LUTC
+	if *verbose {
+		logFlags |= log.Lshortfile
+	}
+	logger := log.New(os.Stderr, "[matlab-mcp] ", logFlags)
 	if *verbose {
 		logger.Println("Verbose logging enabled")
 	}
@@ -96,8 +103,4 @@ func main() {
 
 	// Run the server; blocks until context is cancelled or a fatal error occurs.
 	if err := srv.Run(ctx); err != nil {
-		logger.Fatalf("Server exited with error: %v", err)
-	}
-
-	logger.Println("Server stopped cleanly.")
-}
+		l
