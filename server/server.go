@@ -59,9 +59,10 @@ func New(name string) *Server {
 		},
 		tools:    make(map[string]Tool),
 		handlers: make(map[string]ToolHandler),
-		// Use log.Lmicroseconds instead of LstdFlags for more precise timestamps,
-		// which is helpful when profiling tool call latency during development.
-		logger: log.New(os.Stderr, "[matlab-mcp] ", log.Lmicroseconds|log.Lshortfile),
+		// Use log.Ldate|log.Ltime|log.Lmicroseconds for full timestamp precision.
+		// Previously only Lmicroseconds was set, which omits the date and time
+		// prefix — making log lines harder to correlate across sessions.
+		logger: log.New(os.Stderr, "[matlab-mcp] ", log.Ldate|log.Ltime|log.Lmicroseconds|log.Lshortfile),
 	}
 }
 
@@ -103,7 +104,4 @@ func (s *Server) Info() ServerInfo {
 	return s.info
 }
 
-// MarshalToolsJSON serializes the registered tools to JSON.
-func (s *Server) MarshalToolsJSON() ([]byte, error) {
-	return json.Marshal(s.ListTools())
-}
+// MarshalToolsJSON serializes the registered tool
