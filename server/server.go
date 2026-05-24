@@ -59,7 +59,8 @@ func New(name string) *Server {
 		},
 		tools:    make(map[string]Tool),
 		handlers: make(map[string]ToolHandler),
-		logger:   log.New(os.Stderr, "[matlab-mcp] ", log.LstdFlags),
+		// Use log.Lshortfile in addition to LstdFlags to make debugging easier
+		logger: log.New(os.Stderr, "[matlab-mcp] ", log.LstdFlags|log.Lshortfile),
 	}
 }
 
