@@ -59,8 +59,9 @@ func New(name string) *Server {
 		},
 		tools:    make(map[string]Tool),
 		handlers: make(map[string]ToolHandler),
-		// Use log.Lshortfile in addition to LstdFlags to make debugging easier
-		logger: log.New(os.Stderr, "[matlab-mcp] ", log.LstdFlags|log.Lshortfile),
+		// Use log.Lmicroseconds instead of LstdFlags for more precise timestamps,
+		// which is helpful when profiling tool call latency during development.
+		logger: log.New(os.Stderr, "[matlab-mcp] ", log.Lmicroseconds|log.Lshortfile),
 	}
 }
 
