@@ -50,7 +50,9 @@ func main() {
 
 	// Configure structured logger.
 	// Personal preference: always include microseconds so timing issues are easier to spot.
-	logger := log.New(os.Stderr, "[matlab-mcp] ", log.LstdFlags|log.Lshortfile|log.Lmicroseconds)
+	// Also adding log.LUTC so timestamps are consistent regardless of local timezone —
+	// useful when comparing logs across machines.
+	logger := log.New(os.Stderr, "[matlab-mcp] ", log.LstdFlags|log.Lshortfile|log.Lmicroseconds|log.LUTC)
 	if *verbose {
 		logger.Println("Verbose logging enabled")
 	}
